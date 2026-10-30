@@ -40,7 +40,11 @@ function Login() {
     if (!email.includes("@")) return setErr("Enter your email address first, then choose “Forgot password”.");
     try {
       await sendPasswordResetEmail(auth, email.trim(), { url: `${window.location.origin}/login` });
-    } catch { /* do not reveal whether the account exists */ }
+    } catch (e2) {
+      if (e2.code === "auth/unauthorized-continue-uri" || e2.code === "auth/invalid-continue-uri") {
+        await sendPasswordResetEmail(auth, email.trim()).catch(() => {});
+      }
+    }
     setInfo("If that email has a leadership account, a password reset link is on its way.");
   }
 

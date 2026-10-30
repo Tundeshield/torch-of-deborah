@@ -55,7 +55,15 @@ export default handler(async (req) => {
     return json(200, { ok: true, ...out });
   }
 
-  if (!existing.empty) throw new HttpError(409, "A super administrator already exists. Sign in and invite others from the leadership page.");
+  if (body.action === "passwordLink") {
+    const email = normalizeEmail(body.email);
+    const admin = existing.docs.find((d) => normalizeEmail(d.data().email) === email);
+    if (!admin) throw new HttpError(404, "That email is not the super administrator's email.");
+    const passwordLink = await auth().generatePasswordResetLink(admin.data().email, { url: `${siteUrl(req)}/login` }).catch(() => auth().generatePasswordResetLink(admin.data().email));
+    return json(200, { ok: true, passwordLink });
+  }
+
+  if (!existing.empty) throw new HttpError(409, "A super administrator already exists. Use “Get my password link” below with the same email to set your password.", { exists: true });
   const email = normalizeEmail(body.email);
   if (!isValidEmail(email)) throw new HttpError(400, "Enter a valid email address.");
   const name = String(body.name || "").trim().slice(0, 120);
@@ -84,6 +92,6 @@ export default handler(async (req) => {
     console.error(e);
     out.indexes = "failed — deploy firestore.indexes.json with the Firebase CLI";
   }
-  out.passwordLink = await auth().generatePasswordResetLink(email, { url: `${siteUrl(req)}/login` });
+  out.passwordLink = await auth().generatePasswordResetLink(email, { url: `${siteUrl(req)}/login` }).catch(() => auth().generatePasswordResetLink(email));
   return json(200, { ok: true, ...out });
 });

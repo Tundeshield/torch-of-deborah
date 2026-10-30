@@ -1,74 +1,56 @@
 import { Component, Suspense, useEffect } from "react";
-import { lazy } from "./lib/lazy.js";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
-import { PageFallback } from "./components/ui.jsx";
+import { lazy } from "./lib/lazy.js";
+import { Loading } from "./components/ui.jsx";
 import PublicLayout from "./components/PublicLayout.jsx";
 import Home from "./pages/public/Home.jsx";
+
+const Join = lazy(() => import("./pages/public/Join.jsx"));
+const FindHub = lazy(() => import("./pages/public/FindHub.jsx"));
+const Privacy = lazy(() => import("./pages/public/Privacy.jsx"));
+const Leaders = lazy(() => import("./pages/app/AppRoutes.jsx"));
 
 class ErrorBoundary extends Component {
   state = { error: null };
   static getDerivedStateFromError(error) {
     return { error };
   }
-  componentDidCatch(error) {
-    console.error(error);
+  componentDidUpdate(prev) {
+    if (prev.pathname !== this.props.pathname && this.state.error) this.setState({ error: null });
   }
   render() {
     if (!this.state.error) return this.props.children;
     return (
       <div className="crash">
-        <h1>This page did not load</h1>
-        <p>Check your connection and try again.</p>
-        <div className="hero-actions">
-          <button className="btn btn-primary" onClick={() => window.location.reload()}>Reload the page</button>
-          <a className="btn btn-quiet" href="/">Go to the home page</a>
-        </div>
+        <h1>This page didn't load</h1>
+        <p className="muted">Check your connection and try again.</p>
+        <button className="btn" onClick={() => window.location.reload()}>Reload</button>
       </div>
     );
   }
 }
 
-const About = lazy(() => import("./pages/public/About.jsx"));
-const Join = lazy(() => import("./pages/public/Join.jsx"));
-const Volunteer = lazy(() => import("./pages/public/Volunteer.jsx"));
-const Contact = lazy(() => import("./pages/public/Contact.jsx"));
-const Privacy = lazy(() => import("./pages/public/Privacy.jsx"));
-const Welcome = lazy(() => import("./pages/public/Welcome.jsx"));
-const Login = lazy(() => import("./pages/public/Login.jsx"));
-const Setup = lazy(() => import("./pages/public/Setup.jsx"));
-const AppRoutes = lazy(() => import("./pages/app/AppRoutes.jsx"));
-
-function ScrollTop() {
+export default function App() {
   const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
-  return null;
-}
-
-export default function App() {
   return (
-    <ErrorBoundary key={useLocation().pathname}>
-    <Suspense fallback={<PageFallback />}>
-      <ScrollTop />
+    <ErrorBoundary pathname={pathname}>
+      <Suspense fallback={<Loading />}>
       <Routes>
         <Route element={<PublicLayout />}>
           <Route index element={<Home />} />
-          <Route path="about" element={<About />} />
-          <Route path="mission" element={<Navigate to="/about#mission" replace />} />
           <Route path="join" element={<Join />} />
-          <Route path="volunteer" element={<Volunteer />} />
-          <Route path="contact" element={<Contact />} />
+          <Route path="find" element={<FindHub />} />
           <Route path="privacy" element={<Privacy />} />
-          <Route path="welcome/:token" element={<Welcome />} />
-          <Route path="welcome" element={<Welcome />} />
         </Route>
-        <Route path="login" element={<Login />} />
-        <Route path="setup" element={<Setup />} />
-        <Route path="app/*" element={<AppRoutes />} />
+        <Route path="login" element={<Leaders />} />
+        <Route path="app/*" element={<Leaders />} />
+        <Route path="welcome/*" element={<Navigate to="/find" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Suspense>
+      </Suspense>
     </ErrorBoundary>
   );
 }

@@ -1,53 +1,42 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, signOut } from "firebase/auth";
-import { doc, onSnapshot } from "firebase/firestore";
-import { auth, db } from "./firebase.js";
+import { onAuthStateChanged, signOut, GoogleAuthProvider, signInWithPopup, signInWithRedirect } from "firebase/auth";
+import { auth } from "./firebase.js";
+import { api } from "./api.js";
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [state, setState] = useState({ loading: Boolean(auth), user: null, profile: null });
+  const [state, setState] = useState({ loading: true, user: null, profile: null, error: null });
 
   useEffect(() => {
-    if (!auth) return;
-    let unsubProfile = null;
-    const unsub = onAuthStateChanged(auth, async (user) => {
-      unsubProfile?.();
-      if (!user) {
-        setState({ loading: false, user: null, profile: null });
-        return;
+    return onAuthStateChanged(auth, async (user) => {
+      if (!user) return setState({ loading: false, user: null, profile: null, error: null });
+      setState((s) => ({ ...s, loading: true }));
+      try {
+        const r = await api.me();
+        if (r.member) await user.getIdToken(true); // pick up access granted by the server
+        setState({ loading: false, user, profile: r.member ? r.profile : null, error: null });
+      } catch (error) {
+        setState({ loading: false, user, profile: null, error });
       }
-      // Refresh so role/hub changes made by admins apply immediately.
-      await user.getIdToken(true).catch(() => {});
-      unsubProfile = onSnapshot(
-        doc(db, "users", user.uid),
-        async (snap) => {
-          const profile = snap.exists() ? { uid: user.uid, ...snap.data() } : null;
-          if (profile) {
-            const claims = (await user.getIdTokenResult()).claims;
-            const stale = claims.role !== profile.role || claims.stateCode !== (profile.stateCode || null) || JSON.stringify(claims.hubIds || []) !== JSON.stringify(profile.hubIds || []);
-            if (stale) await user.getIdToken(true).catch(() => {});
-          }
-          setState({ loading: false, user, profile });
-        },
-        () => setState({ loading: false, user, profile: null }),
-      );
     });
-    return () => {
-      unsub();
-      unsubProfile?.();
-    };
   }, []);
 
   const value = {
     ...state,
-    logout: () => auth && signOut(auth),
+    signIn: async () => {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: "select_account" });
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (e) {
+        if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") await signInWithRedirect(auth, provider);
+        else if (e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") throw e;
+      }
+    },
+    signOut: () => signOut(auth),
   };
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-export function useAuth() {
-  return useContext(AuthContext);
-}
-
-export const isNationalRole = (p) => p?.role === "superadmin" || p?.role === "admin";
+export const useAuth = () => useContext(AuthContext);

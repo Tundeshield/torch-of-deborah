@@ -1,8 +1,32 @@
-import { lazy, Suspense, useEffect } from "react";
+import { Component, Suspense, useEffect } from "react";
+import { lazy } from "./lib/lazy.js";
 import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { PageFallback } from "./components/ui.jsx";
 import PublicLayout from "./components/PublicLayout.jsx";
 import Home from "./pages/public/Home.jsx";
-import { Loading } from "./components/ui.jsx";
+
+class ErrorBoundary extends Component {
+  state = { error: null };
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  componentDidCatch(error) {
+    console.error(error);
+  }
+  render() {
+    if (!this.state.error) return this.props.children;
+    return (
+      <div className="crash">
+        <h1>This page did not load</h1>
+        <p>Check your connection and try again.</p>
+        <div className="hero-actions">
+          <button className="btn btn-primary" onClick={() => window.location.reload()}>Reload the page</button>
+          <a className="btn btn-quiet" href="/">Go to the home page</a>
+        </div>
+      </div>
+    );
+  }
+}
 
 const About = lazy(() => import("./pages/public/About.jsx"));
 const Join = lazy(() => import("./pages/public/Join.jsx"));
@@ -16,13 +40,16 @@ const AppRoutes = lazy(() => import("./pages/app/AppRoutes.jsx"));
 
 function ScrollTop() {
   const { pathname } = useLocation();
-  useEffect(() => window.scrollTo(0, 0), [pathname]);
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
   return null;
 }
 
 export default function App() {
   return (
-    <Suspense fallback={<Loading />}>
+    <ErrorBoundary key={useLocation().pathname}>
+    <Suspense fallback={<PageFallback />}>
       <ScrollTop />
       <Routes>
         <Route element={<PublicLayout />}>
@@ -42,5 +69,6 @@ export default function App() {
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Suspense>
+    </ErrorBoundary>
   );
 }

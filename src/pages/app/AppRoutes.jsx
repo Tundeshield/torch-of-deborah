@@ -1,4 +1,5 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { lazy } from "../../lib/lazy.js";
 import { Navigate, NavLink, Route, Routes, useLocation, Link } from "react-router-dom";
 import { useAuth, AuthProvider } from "../../lib/auth.jsx";
 import { firebaseConfigured } from "../../lib/firebase.js";
@@ -54,7 +55,9 @@ function AppRoutes() {
   const s = useScope();
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
-  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
 
   if (!firebaseConfigured) return <Navigate to="/login" replace />;
   if (loading) return <Loading label="Opening your dashboard…" />;

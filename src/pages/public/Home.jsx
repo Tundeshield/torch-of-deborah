@@ -3,16 +3,11 @@ import { Torch } from "../../components/ui.jsx";
 import { usePublicStats } from "../../lib/publicStats.js";
 import { STATES } from "../../data/states.js";
 import { DEPARTMENTS, formatTime12 } from "../../lib/shared.js";
-import { nf } from "../../lib/format.js";
 import { FAQ } from "./faq.js";
 
 export default function Home() {
   const { data } = usePublicStats();
   const site = data?.site || {};
-  const target = site.registrationTarget || 10000;
-  const total = data?.total ?? null;
-  const pct = total ? Math.min(100, (total / target) * 100) : 0;
-  const byState = data?.byState || {};
 
   return (
     <>
@@ -34,15 +29,7 @@ export default function Home() {
               <Link to="/about" className="btn btn-ghost">Learn about the movement</Link>
             </div>
           </div>
-          <aside className="hero-aside" aria-label="Registration progress">
-            <Torch className="torch" />
-            <div className="tally-num">{total === null ? "10,000" : nf.format(total)}</div>
-            <div className="tally-label">
-              {total === null ? "women called to pray for Nigeria" : `of ${nf.format(target)} women have answered the call`}
-            </div>
-            <div className="tally-bar" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>
-            {total !== null && <div className="tally-note">{nf.format(Math.max(target - total, 0))} places remain</div>}
-          </aside>
+          <Torch className="hero-emblem" />
         </div>
       </section>
 
@@ -106,21 +93,17 @@ export default function Home() {
           <div className="split">
             <h2 className="h2">The torch passes through every state.</h2>
             <p className="lede">
-              Our vision is women praying in every state and local government area of Nigeria. Each state below lights up as women register there.
+              Our vision is women praying in every state and local government area of Nigeria, joined by Nigerian women abroad.
             </p>
           </div>
           <div className="roll">
-            {STATES.map((s) => {
-              const n = byState[s.code] || 0;
-              return (
-                <div key={s.code} className={`roll-item ${n > 0 ? "lit" : ""}`}>
-                  <span className="roll-name">{s.code === "FC" ? "FCT" : s.name}</span>
-                  <span className="roll-count">{n > 0 ? nf.format(n) : ""}</span>
-                </div>
-              );
-            })}
+            {STATES.map((s) => (
+              <div key={s.code} className="roll-item">
+                <span className="roll-name">{s.code === "FC" ? "FCT" : s.name}</span>
+              </div>
+            ))}
           </div>
-          <p className="roll-legend">Is your state still unlit? <Link to="/join">Register and carry the torch there.</Link></p>
+          <p className="roll-legend"><Link to="/join">Register and carry the torch in your state.</Link></p>
         </div>
       </section>
 

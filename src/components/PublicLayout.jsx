@@ -1,6 +1,6 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
-import { Torch } from "./ui.jsx";
+import { PageFallback, Torch } from "./ui.jsx";
 import { usePublicStats } from "../lib/publicStats.js";
 
 export default function PublicLayout() {
@@ -8,7 +8,9 @@ export default function PublicLayout() {
   const { pathname, hash } = useLocation();
   const stats = usePublicStats();
   const site = stats.data?.site || {};
-  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
   useEffect(() => {
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
   }, [hash, pathname]);
@@ -35,7 +37,9 @@ export default function PublicLayout() {
         </div>
       </header>
       <main id="main">
-        <Outlet />
+        <Suspense fallback={<PageFallback />}>
+          <Outlet />
+        </Suspense>
       </main>
       <footer className="site-footer">
         <div className="wrap">

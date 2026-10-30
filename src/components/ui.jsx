@@ -89,8 +89,12 @@ export function Empty({ title, children, action }) {
   );
 }
 
-export function Loading({ label = "Loading…" }) {
-  return <div className="loading" role="status">{label}</div>;
+export function Loading({ label = "Loading" }) {
+  return <div className="loading" role="status"><span className="spinner" aria-hidden="true" />{label}</div>;
+}
+
+export function PageFallback() {
+  return <div className="page-loading" role="status" aria-label="Loading"><span className="spinner" aria-hidden="true" /></div>;
 }
 
 export function ErrorBox({ error }) {

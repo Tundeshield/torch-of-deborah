@@ -24,8 +24,8 @@ export default function HubResult({ info, title }) {
         </div>
       ) : (
         <div className="hubcard">
-          <h2>We're finding a hub for you</h2>
-          <p>All hubs in {info.stateName} are full right now. We'll add you to one soon and your hub leader will message you on WhatsApp.</p>
+          <h2>Your place is saved</h2>
+          <p>We're putting you in a prayer hub in {info.stateName}. Your hub leader will message you on WhatsApp with the group link, usually within a few days.</p>
         </div>
       )}
 

@@ -23,29 +23,37 @@ export default function People() {
   const [tick, setTick] = useState(0);
   const stateCode = s.coordinator ? s.stateCode : stateFilter;
 
+  // Queries are kept to forms Firestore serves without custom indexes:
+  // equality filters only, or a single ordered field.
+  const term = q.trim();
+  const phoneSearch = /^[+\d\s()-]{7,}$/.test(term);
+  const localNameSearch = Boolean(term) && !phoneSearch && Boolean(stateCode);
+
   function build(after) {
     const col = collection(db, "participants");
     const cons = stateCode ? [where("stateCode", "==", stateCode)] : [];
-    const term = q.trim();
-    if (term) {
-      if (/^[+\d\s()-]{7,}$/.test(term)) return query(col, ...cons, where("phoneNorm", "==", normalizePhone(term)));
+    if (phoneSearch) return { q: query(col, ...cons, where("phoneNorm", "==", normalizePhone(term))) };
+    if (term && !stateCode) {
       const lo = term.toLowerCase();
-      return query(col, ...cons, where("nameLower", ">=", lo), where("nameLower", "<=", lo + ""), orderBy("nameLower"), limit(50));
+      return { q: query(col, where("nameLower", ">=", lo), where("nameLower", "<=", lo + "\uf8ff"), orderBy("nameLower"), limit(50)) };
     }
-    const statuses = tab === "waiting" ? ["waiting"] : tab === "removed" ? ["removed"] : ["assigned", "waiting"];
-    cons.push(where("status", "in", statuses));
-    return query(col, ...cons, orderBy("createdAt", "desc"), ...(after ? [startAfter(after)] : []), limit(PAGE));
+    if (!stateCode && tab === "all") return { q: query(col, orderBy("createdAt", "desc"), ...(after ? [startAfter(after)] : []), limit(PAGE)), paged: true };
+    if (tab !== "all") cons.push(where("status", "==", tab));
+    return { q: query(col, ...cons, limit(1000)) };
   }
 
   async function load(after) {
     setLoading(true);
     setError(null);
     try {
-      const snap = await getDocs(build(after));
-      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const { q: qry, paged } = build(after);
+      const snap = await getDocs(qry);
+      let data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      if (tab === "all" && !term) data = data.filter((p) => p.status !== "removed");
+      if (!paged) data.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
       setRows((r) => (after ? [...r, ...data] : data));
       setCursor(snap.docs[snap.docs.length - 1]);
-      setMore(!q.trim() && snap.size === PAGE);
+      setMore(Boolean(paged) && snap.size === PAGE);
     } catch (e) {
       setError(e);
     } finally {
@@ -54,10 +62,12 @@ export default function People() {
   }
 
   useEffect(() => {
-    const t = setTimeout(() => load(), q ? 300 : 0);
+    const t = setTimeout(() => load(), term && !localNameSearch ? 300 : 0);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [stateCode, tab, q, tick]);
+  }, [stateCode, tab, localNameSearch ? "" : q, tick]);
+
+  const shown = localNameSearch ? rows.filter((p) => (p.nameLower || "").includes(term.toLowerCase())) : rows;
 
   async function download() {
     const col = collection(db, "participants");
@@ -83,7 +93,7 @@ export default function People() {
       <div className="tools">
         <input className="input search" placeholder="Search by name or phone" value={q} onChange={(e) => setQ(e.target.value)} aria-label="Search" />
         {s.admin && <StateSelect value={stateFilter} onChange={setStateFilter} />}
-        {!q && (
+        {!term && (
           <div className="tabs" role="tablist">
             {[["all", "All"], ["waiting", "Waiting for a hub"], ["removed", "Removed"]].map(([k, l]) => (
               <button key={k} role="tab" aria-selected={tab === k} className={tab === k ? "on" : ""} onClick={() => setTab(k)}>{l}</button>
@@ -92,14 +102,14 @@ export default function People() {
         )}
       </div>
       <ErrorText error={error} />
-      {loading && !rows.length ? <Loading /> : rows.length === 0 ? (
+      {loading && !rows.length ? <Loading /> : shown.length === 0 ? (
         <Empty title={q ? "No one matches that search" : tab === "waiting" ? "No one is waiting for a hub" : "No one here yet"} />
       ) : (
         <div className="scroll">
           <table className="table">
             <thead><tr><th>Name</th><th>WhatsApp</th><th className="hide-sm">Location</th><th>Hub</th></tr></thead>
             <tbody>
-              {rows.map((p) => (
+              {shown.map((p) => (
                 <tr key={p.id} className="click" onClick={() => setOpen(p)} tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setOpen(p)}>
                   <td>{p.fullName}</td>
                   <td>{p.phone}</td>

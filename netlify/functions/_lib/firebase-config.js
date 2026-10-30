@@ -18,11 +18,5 @@ service cloud.firestore {
 }
 `;
 
-const f = (fieldPath, order = "ASCENDING") => ({ fieldPath, order });
-
-export const INDEXES = [
-  { collectionGroup: "participants", fields: [f("stateCode"), f("createdAt", "DESCENDING")] },
-  { collectionGroup: "participants", fields: [f("status"), f("createdAt", "DESCENDING")] },
-  { collectionGroup: "participants", fields: [f("stateCode"), f("status"), f("createdAt", "DESCENDING")] },
-  { collectionGroup: "participants", fields: [f("stateCode"), f("nameLower")] },
-];
+// The app only uses queries Firestore serves with its automatic indexes, so no custom indexes are needed.
+export const INDEXES = [];

@@ -34,7 +34,8 @@ export function AuthProvider({ children }) {
       try {
         await signInWithPopup(auth, provider);
       } catch (e) {
-        if (e.code === "auth/popup-blocked" || e.code === "auth/operation-not-supported-in-this-environment") await signInWithRedirect(auth, provider);
+        // Popups can be blocked, or fail in browsers that block cross-site storage; a full-page redirect works there.
+        if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment", "auth/network-request-failed", "auth/web-storage-unsupported"].includes(e.code)) await signInWithRedirect(auth, provider);
         else if (e.code !== "auth/popup-closed-by-user" && e.code !== "auth/cancelled-popup-request") throw e;
       }
     },

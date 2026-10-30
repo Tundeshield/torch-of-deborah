@@ -29,6 +29,7 @@ export default function Login() {
       setErr(
         e.code === "auth/operation-not-allowed" ? "Google sign-in is not turned on yet. In Firebase, go to Authentication → Sign-in method and enable Google."
         : e.code === "auth/unauthorized-domain" ? "This address is being allowed for sign-in. Wait a minute, reload the page and try again."
+        : e.code === "auth/network-request-failed" ? "Couldn't reach Google. Check your connection, turn off any ad or tracker blocker for this site, and try again."
         : e.message,
       );
     } finally {

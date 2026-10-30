@@ -28,7 +28,10 @@ test("admin from ADMIN_EMAILS becomes admin on first sign-in; strangers are not 
   assert.equal(r.body.member, true);
   assert.equal(r.body.profile.role, "admin");
   assert.equal(fauth.claims["uid-boss@x.com"].role, "admin");
+  fauth.deleted = [];
+  fauth.deleteUser = async (uid) => fauth.deleted.push(uid);
   assert.equal((await call(me, {}, "stranger@x.com")).body.member, false);
+  assert.deepEqual(fauth.deleted, ["uid-stranger@x.com"]);
   assert.equal((await as("stranger@x.com", "saveHub", { name: "X", stateCode: "LA" })).status, 403);
 });
 
@@ -70,12 +73,16 @@ test("new registration goes straight into a hub, then the waiting list when full
   assert.deepEqual({ ...counts("LA") }, { registrations: 3, waiting: 1, assigned: 2 });
 });
 
-test("find my hub by WhatsApp number", async () => {
-  const p = db.dump("participants").find((x) => x.hubId);
-  const r = await call(find, { phone: p.phone.replace(/^0/, "+234") });
+test("my hub opens only with the key saved on the registering phone", async () => {
+  const r0 = await reg();
+  const p = db.dump("participants").find((x) => x.fullName === "Ada Obi " + n);
+  assert.ok(r0.body.deviceKey && !p.deviceKey, "only a hash is stored");
+  const r = await call(find, { deviceKey: r0.body.deviceKey });
   assert.equal(r.status, 200);
-  assert.equal(r.body.hub.name, "Ikeja Hub");
-  assert.equal((await call(find, { phone: "08099999999" })).status, 404);
+  assert.equal(r.body.firstName, "Ada");
+  assert.equal((await call(find, { phone: p.phone })).status, 404, "no lookup by phone");
+  assert.equal((await call(find, { deviceKey: "x".repeat(32) })).status, 404);
+  await as("boss@x.com", "removeParticipant", { id: p.id });
 });
 
 test("moving, removing and restoring keep hub counts and totals right", async () => {

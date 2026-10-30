@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useSite } from "../../components/PublicLayout.jsx";
 import { formatTime12 } from "../../lib/shared.js";
+import { getHubKey } from "../../lib/device.js";
 
 const FAQ = [
   ["Who can join?", "Any woman who wants to pray for Nigeria, in Nigeria or abroad. You don't need to belong to a particular church."],
@@ -20,7 +21,7 @@ export default function Home() {
           <p>10,000 women praying together for Nigeria, every day, for six months. Join a small prayer hub of women from your state.</p>
           <div className="actions">
             <Link to="/join" className="btn light">Join the movement</Link>
-            <Link to="/find" className="text">Already registered? Find my hub</Link>
+            {getHubKey() && <Link to="/my-hub" className="text">Go to my hub</Link>}
           </div>
         </div>
       </section>

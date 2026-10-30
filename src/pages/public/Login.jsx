@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { api } from "../../lib/api.js";
 import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "../../lib/auth.jsx";
 import { Loading, Torch } from "../../components/ui.jsx";
@@ -8,9 +9,13 @@ const GoogleIcon = () => (
 );
 
 export default function Login() {
-  const { user, profile, loading, error, signIn, signOut } = useAuth();
+  const { profile, loading, refused, signIn } = useAuth();
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+
+  useEffect(() => {
+    api.site().catch(() => {}); // makes sure this address is allowed for Google sign-in
+  }, []);
 
   if (loading) return <Loading />;
   if (profile) return <Navigate to="/app" replace />;
@@ -21,7 +26,11 @@ export default function Login() {
     try {
       await signIn();
     } catch (e) {
-      setErr(e.code === "auth/operation-not-allowed" ? "Google sign-in is not turned on yet in Firebase." : e.code === "auth/unauthorized-domain" ? "This website address is not yet allowed in Firebase." : e.message);
+      setErr(
+        e.code === "auth/operation-not-allowed" ? "Google sign-in is not turned on yet. In Firebase, go to Authentication → Sign-in method and enable Google."
+        : e.code === "auth/unauthorized-domain" ? "This address is being allowed for sign-in. Wait a minute, reload the page and try again."
+        : e.message,
+      );
     } finally {
       setBusy(false);
     }
@@ -31,21 +40,14 @@ export default function Login() {
     <div className="signin">
       <div className="box">
         <Link to="/" aria-label="Home"><Torch className="mark" color="#5a1028" /></Link>
-        {user && !profile ? (
-          <>
-            <h1>Not on the team yet</h1>
-            <p>{error ? error.message : <>Ask an admin to add <strong>{user.email}</strong> to the team, then sign in again.</>}</p>
-            <button className="google" onClick={() => signOut()}>Use a different account</button>
-          </>
-        ) : (
+        {refused && <div className="alert"><strong>{refused}</strong> is not on the team. Ask an admin to add you, then try again.</div>}
           <>
             <h1>Leader sign in</h1>
             <p>For coordinators, hub leaders and the national team.</p>
             {err && <div className="alert">{err}</div>}
             <button className="google" onClick={go} disabled={busy}><GoogleIcon /> {busy ? "Signing in…" : "Sign in with Google"}</button>
-            <p className="small" style={{ margin: "24px 0 0" }}>Registered to pray? <Link to="/find">Find my hub</Link></p>
+            <p className="small" style={{ margin: "24px 0 0" }}>Registered to pray? <Link to="/">Go to the home page</Link></p>
           </>
-        )}
       </div>
     </div>
   );

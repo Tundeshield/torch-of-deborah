@@ -2,6 +2,7 @@ import { Suspense, useEffect, useState } from "react";
 import { Link, Outlet, useLocation } from "react-router-dom";
 import { Loading, Torch } from "./ui.jsx";
 import { api } from "../lib/api.js";
+import { getHubKey } from "../lib/device.js";
 
 let siteCache = null;
 export function useSite() {
@@ -25,7 +26,7 @@ export default function PublicLayout() {
         <div className="wrap">
           <Link to="/" className="logo"><Torch color="#5a1028" /><span>The Torch of Deborah</span></Link>
           <nav aria-label="Main">
-            {pathname !== "/find" && <Link to="/find">Find my hub</Link>}
+            {getHubKey() && pathname !== "/my-hub" && <Link to="/my-hub">My hub</Link>}
             {pathname !== "/join" && <Link to="/join" className="btn sm">Join</Link>}
           </nav>
         </div>

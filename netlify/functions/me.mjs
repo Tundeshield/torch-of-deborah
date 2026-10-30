@@ -17,7 +17,8 @@ export default handler(async (req) => {
   }
 
   if (!snap.exists) {
-    await auth().setCustomUserClaims(uid, null);
+    // Not on the team: remove the sign-in Google created so no account lingers.
+    await auth().deleteUser(uid).catch(() => {});
     return json(200, { member: false, email });
   }
   const u = snap.data();

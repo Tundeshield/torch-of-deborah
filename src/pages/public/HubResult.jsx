@@ -40,7 +40,7 @@ export default function HubResult({ info, title }) {
             {info.zoomLink && <> <a href={info.zoomLink} target="_blank" rel="noopener">Join on Zoom</a></>}
           </li>
         )}
-        <li className="muted small">Lost this page? Use “Find my hub” with your WhatsApp number any time.</li>
+        <li className="muted small">To see this again, open “My hub” on this phone.</li>
       </ul>
     </div>
   );

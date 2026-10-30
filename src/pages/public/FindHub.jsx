@@ -1,41 +1,38 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Field } from "../../components/ui.jsx";
+import { Loading } from "../../components/ui.jsx";
 import { api } from "../../lib/api.js";
+import { getHubKey, clearHubKey } from "../../lib/device.js";
+import { useSite } from "../../components/PublicLayout.jsx";
+import { waLink } from "../../lib/shared.js";
 import HubResult from "./HubResult.jsx";
 
-export default function FindHub() {
-  const [phone, setPhone] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [result, setResult] = useState(null);
+export default function MyHubPublic() {
+  const key = getHubKey();
+  const site = useSite();
+  const [state, setState] = useState({ loading: Boolean(key), info: null });
 
-  async function submit(e) {
-    e.preventDefault();
-    setError("");
-    setBusy(true);
-    try {
-      setResult(await api.find(phone));
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setBusy(false);
-    }
-  }
+  useEffect(() => {
+    if (!key) return;
+    api.myHub(key)
+      .then((info) => setState({ loading: false, info }))
+      .catch((e) => {
+        if (e.status === 404) clearHubKey();
+        setState({ loading: false, info: null });
+      });
+  }, [key]);
 
-  if (result) return <div className="page"><div className="narrow"><HubResult info={result} title={`Hello, ${result.firstName}`} /></div></div>;
+  if (state.loading) return <Loading />;
+  if (state.info) return <div className="page"><div className="narrow"><HubResult info={state.info} title={`Hello, ${state.info.firstName}`} /></div></div>;
 
   return (
     <div className="page">
-      <form className="narrow" onSubmit={submit}>
-        <h1>Find my hub</h1>
-        <p className="muted">Enter the WhatsApp number you registered with.</p>
-        {error && <div className="alert" role="alert">{error} {error.includes("could not find") && <Link to="/join">Register</Link>}</div>}
-        <Field label="WhatsApp number" id="fp">
-          <input id="fp" className="input" type="tel" inputMode="tel" autoComplete="tel" placeholder="0803 123 4567" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </Field>
-        <button className="btn block" disabled={busy || phone.trim().length < 7}>{busy ? "Looking…" : "Show my hub"}</button>
-      </form>
+      <div className="narrow">
+        <h1>My hub</h1>
+        <p className="muted">Your hub shows here on the phone you registered with.</p>
+        <p>On another phone, or can't find it? Your hub leader will message you on WhatsApp with your group link.{site.contactPhone && <> If you haven't heard from them, <a href={waLink(site.contactPhone)} target="_blank" rel="noopener">message the national team</a>.</>}</p>
+        <p style={{ marginTop: 28 }}>Not registered yet? <Link to="/join">Join the movement</Link></p>
+      </div>
     </div>
   );
 }

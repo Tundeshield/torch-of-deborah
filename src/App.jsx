@@ -42,12 +42,13 @@ export default function App() {
         <Route element={<PublicLayout />}>
           <Route index element={<Home />} />
           <Route path="join" element={<Join />} />
-          <Route path="find" element={<FindHub />} />
+          <Route path="my-hub" element={<FindHub />} />
+          <Route path="find" element={<Navigate to="/my-hub" replace />} />
           <Route path="privacy" element={<Privacy />} />
         </Route>
         <Route path="login" element={<Leaders />} />
         <Route path="app/*" element={<Leaders />} />
-        <Route path="welcome/*" element={<Navigate to="/find" replace />} />
+        <Route path="welcome/*" element={<Navigate to="/my-hub" replace />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>

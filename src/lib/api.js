@@ -27,7 +27,7 @@ async function request(path, { body, signedIn = false } = {}) {
 
 export const api = {
   register: (body) => request("register", { body }),
-  find: (phone) => request("find", { body: { phone } }),
+  myHub: (deviceKey) => request("find", { body: { deviceKey } }),
   site: () => request("site"),
   me: () => request("me", { body: {}, signedIn: true }),
   admin: (action, body = {}) => request("admin", { body: { action, ...body }, signedIn: true }),

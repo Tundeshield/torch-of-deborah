@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { db, handler, json, readJson, HttpError, getSettings, FieldValue } from "./_lib/core.js";
 import { applyMove, hubsInState, hubInfo } from "./_lib/allocate.js";
 import { normalizeEmail, normalizePhone, isValidEmail, isValidPhone, pickHub, CATEGORIES } from "../../src/lib/shared.js";
@@ -29,6 +30,7 @@ export default handler(async (req) => {
   if (Object.keys(errors).length) throw new HttpError(400, "Please check the highlighted fields.", { fields: errors });
 
   const phoneNorm = normalizePhone(v.phone);
+  const deviceKey = crypto.randomBytes(24).toString("base64url");
   const ref = db().collection("participants").doc();
 
   const { hub } = await db().runTransaction(async (tx) => {
@@ -36,7 +38,7 @@ export default handler(async (req) => {
     if (settings.registrationOpen === false) throw new HttpError(403, "Registration is closed at the moment.");
     const dupRef = db().doc(`dedupe/p${phoneNorm.replace(/\D/g, "")}`);
     const dup = await tx.get(dupRef);
-    if (dup.exists) throw new HttpError(409, "This WhatsApp number is already registered. Use “Find my hub” to see your hub.", { duplicate: true });
+    if (dup.exists) throw new HttpError(409, "This WhatsApp number is already registered. Your hub leader will message you on WhatsApp with your group link.", { duplicate: true });
     const hub = pickHub(await hubsInState(tx, v.stateCode), { stateCode: v.stateCode, lga: v.lga, settings });
     tx.set(dupRef, { participantId: ref.id });
     const participant = {
@@ -48,11 +50,12 @@ export default handler(async (req) => {
       phoneNorm,
       nameLower: v.fullName.toLowerCase(),
       consentAt: new Date().toISOString(),
+      deviceKeyHash: crypto.createHash("sha256").update(deviceKey).digest("hex"),
       createdAt: FieldValue.serverTimestamp(),
     };
     applyMove(tx, { ref, participant, prev: "new", from: null, to: hub, stateFrom: v.stateCode, stateTo: v.stateCode, actor: null });
     return { hub };
   });
 
-  return json(200, { ok: true, ...(await hubInfo(v, hub)) });
+  return json(200, { ok: true, deviceKey, ...(await hubInfo(v, hub)) });
 });

@@ -6,6 +6,7 @@ import { CATEGORIES, isValidPhone, isValidEmail } from "../../lib/shared.js";
 import { api } from "../../lib/api.js";
 import { useSite } from "../../components/PublicLayout.jsx";
 import HubResult from "./HubResult.jsx";
+import { saveHubKey } from "../../lib/device.js";
 
 const blank = { fullName: "", phone: "", email: "", stateCode: "", lga: "", category: "Prayer Participant", consent: false, website: "" };
 
@@ -37,7 +38,9 @@ export default function Join() {
     if (Object.keys(errs).length) return;
     setBusy(true);
     try {
-      setResult(await api.register(f));
+      const r = await api.register(f);
+      if (r.deviceKey) saveHubKey(r.deviceKey);
+      setResult(r);
       window.scrollTo(0, 0);
     } catch (err) {
       setErrors(err.data?.fields || {});
@@ -61,7 +64,7 @@ export default function Join() {
         {site.registrationOpen === false && <div className="alert">Registration is paused at the moment. Please check back soon.</div>}
         {error && (
           <div className="alert" role="alert">
-            {error} {error.includes("already registered") && <Link to="/find">Find my hub</Link>}
+            {error}
           </div>
         )}
         <input className="hp" tabIndex={-1} autoComplete="off" aria-hidden="true" value={f.website} onChange={set("website")} />
